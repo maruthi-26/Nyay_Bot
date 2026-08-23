@@ -1,4 +1,4 @@
-﻿# NyayBot Backend — Run with: uvicorn main:app --reload --port 8000
+# NyayBot Backend — Run with: uvicorn main:app --reload --port 8000
 import logging
 import uuid
 import re
@@ -21,6 +21,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+def root():
+    return {"status": "ok", "service": "NyayBot Backend", "version": "2.0"}
 
 # ── text helpers ──────────────────────────────────────────────────────────────
 
