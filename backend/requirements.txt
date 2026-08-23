@@ -1,0 +1,9 @@
+﻿fastapi
+uvicorn[standard]
+python-multipart
+PyMuPDF
+langdetect
+google-generativeai
+aiohttp
+numpy
+python-dotenv
