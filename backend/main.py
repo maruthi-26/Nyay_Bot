@@ -6,7 +6,10 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 from langdetect import detect, LangDetectException
-import fitz  # PyMuPDF
+try:
+    import pymupdf as fitz
+except ImportError:
+    import fitz
 
 load_dotenv()
 logging.basicConfig(level=logging.INFO)
