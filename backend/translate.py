@@ -4,7 +4,7 @@ import time
 import logging
 import aiohttp
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 from google import genai
 from google.genai import types
@@ -12,7 +12,7 @@ from google.genai import types
 load_dotenv()
 logger = logging.getLogger("nyaybot")
 
-MODELS_FALLBACK = ["gemini-3.5-flash", "gemini-3.6-flash", "gemini-3-flash-preview", "gemini-flash-latest"]
+MODELS_FALLBACK = ["gemini-2.5-flash", "gemini-flash-latest"]
 
 LANGUAGES = {
     "en": {"name": "English", "native": "English"},
@@ -29,17 +29,23 @@ LANGUAGES = {
 }
 
 def get_client() -> genai.Client:
+    from fastapi import HTTPException
     api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    # SECURITY FIX: fail loudly server-side instead of sending None to the SDK.
+    if not api_key:
+        raise HTTPException(503, "LLM service is not configured (missing API key).")
     return genai.Client(api_key=api_key)
 
+SUPPORTED_LANG_CODES = {"en","hi","te","ta","kn","bn","mr","gu","ml","pa","or"}
+
 class TranslateRequest(BaseModel):
-    text: str
-    target_lang: str
-    source_lang: str = "en"
+    text: str = Field(min_length=1, max_length=10_000)
+    target_lang: str = Field(min_length=2, max_length=2)
+    source_lang: str = Field(default="en", min_length=2, max_length=2)
 
 class SpeakRequest(BaseModel):
-    text: str
-    lang: str
+    text: str = Field(min_length=1, max_length=10_000)
+    lang: str = Field(min_length=2, max_length=2)
 
 async def translate_with_gemini(text: str, target_lang: str) -> str:
     lang_name = LANGUAGES.get(target_lang, {}).get("name", "Hindi")
@@ -117,6 +123,11 @@ async def text_to_speech(text: str, lang: str) -> tuple[Optional[str], str]:
     return None, "browser_tts"
 
 async def handle_translate(req: TranslateRequest):
+    # SECURITY FIX: reject unknown language codes before they are forwarded
+    # into third-party API payloads.
+    from fastapi import HTTPException
+    if req.target_lang not in SUPPORTED_LANG_CODES or req.source_lang not in SUPPORTED_LANG_CODES:
+        raise HTTPException(400, "Unsupported language code.")
     start = time.time()
     translated, provider = await translate_text(req.text, req.target_lang, req.source_lang)
     elapsed = int((time.time() - start) * 1000)
@@ -130,6 +141,9 @@ async def handle_translate(req: TranslateRequest):
     }
 
 async def handle_speak(req: SpeakRequest):
+    from fastapi import HTTPException
+    if req.lang not in SUPPORTED_LANG_CODES:
+        raise HTTPException(400, "Unsupported language code.")
     audio, provider = await text_to_speech(req.text, req.lang)
     return {
         "audio_base64": audio,
