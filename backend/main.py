@@ -1,5 +1,6 @@
 # NyayBot Backend — Run with: uvicorn main:app --reload --port 8000
 import logging
+import os
 import uuid
 import re
 from fastapi import FastAPI, UploadFile, File, HTTPException, Query
@@ -17,17 +18,25 @@ logger = logging.getLogger("nyaybot")
 
 app = FastAPI(title="NyayBot API", version="2.0")
 
+MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024
+MAX_PDF_PAGES = 300
+MAX_DOCUMENT_CHARS = 100_000
+
+allowed_origins = [
+    origin.strip().rstrip("/")
+    for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
+    if origin.strip()
+]
+if not allowed_origins or "*" in allowed_origins:
+    raise RuntimeError("CORS_ORIGINS must contain explicit origins; wildcards are not allowed.")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
-
-@app.get("/")
-def root():
-    return {"status": "ok", "service": "NyayBot Backend", "version": "2.0"}
 
 # ── text helpers ──────────────────────────────────────────────────────────────
 
@@ -45,12 +54,12 @@ def clean_text(raw: str) -> str:
 def chunk_text(text: str, chunk_size: int = 600, overlap: int = 80):
     chunks, start, idx = [], 0, 1
     while start < len(text):
-        end = start + chunk_size
+        end = min(start + chunk_size, len(text))
         if end < len(text):
             b = text.rfind(".", start, end)
             if b == -1:
                 b = text.rfind(" ", start, end)
-            if b != -1:
+            if b >= start + chunk_size // 2:
                 end = b + 1
         snippet = text[start:end].strip()
         if snippet:
@@ -61,7 +70,9 @@ def chunk_text(text: str, chunk_size: int = 600, overlap: int = 80):
                 "end_char": end
             })
             idx += 1
-        start = end - overlap
+        if end >= len(text):
+            break
+        start = max(start + 1, end - overlap)
     return chunks
 
 # ── endpoints ─────────────────────────────────────────────────────────────────
@@ -72,23 +83,39 @@ def root():
 
 @app.post("/upload")
 async def upload_pdf(file: UploadFile = File(...)):
-    if not file.filename.lower().endswith(".pdf"):
+    if not (file.filename or "").lower().endswith(".pdf"):
         raise HTTPException(400, "Only PDF files are accepted.")
-    content = await file.read()
-    if len(content) > 10 * 1024 * 1024:
+    content = await file.read(MAX_PDF_SIZE_BYTES + 1)
+    if len(content) > MAX_PDF_SIZE_BYTES:
         raise HTTPException(413, "File size exceeds 10MB limit.")
+    if not content.startswith(b"%PDF-"):
+        raise HTTPException(422, "The uploaded file is not a valid PDF.")
+
+    doc = None
     try:
         doc = fitz.open(stream=content, filetype="pdf")
         if doc.needs_pass:
             raise HTTPException(422, "This PDF is password-protected. Please remove the password and try again.")
-        pages = [{"page_num": i + 1, "raw_text": p.get_text()} for i, p in enumerate(doc)]
-        doc.close()
+        if doc.page_count > MAX_PDF_PAGES:
+            raise HTTPException(413, f"PDFs are limited to {MAX_PDF_PAGES} pages.")
+        page_texts = []
+        total_chars = 0
+        for page in doc:
+            page_text = clean_text(page.get_text())
+            total_chars += len(page_text) + (1 if page_texts else 0)
+            if total_chars > MAX_DOCUMENT_CHARS:
+                raise HTTPException(413, "Extracted document text exceeds the 100,000 character limit.")
+            page_texts.append(page_text)
     except HTTPException:
         raise
-    except Exception as e:
-        raise HTTPException(500, str(e))
+    except Exception:
+        logger.exception("Failed to parse uploaded PDF")
+        raise HTTPException(422, "The uploaded PDF could not be read.")
+    finally:
+        if doc is not None:
+            doc.close()
 
-    full_text = " ".join(clean_text(p["raw_text"]) for p in pages)
+    full_text = " ".join(page_texts)
     if len(full_text.strip()) < 100:
         raise HTTPException(422, "This PDF contains only scanned images. Text extraction is not supported yet.")
 
@@ -99,12 +126,12 @@ async def upload_pdf(file: UploadFile = File(...)):
 
     chunks = chunk_text(full_text)
     doc_id = str(uuid.uuid4())
-    logger.info(f"Uploaded doc_id={doc_id} pages={len(pages)} chunks={len(chunks)}")
+    logger.info("Uploaded doc_id=%s pages=%s chunks=%s", doc_id, len(page_texts), len(chunks))
 
     return {
         "doc_id": doc_id,
-        "filename": file.filename,
-        "total_pages": len(pages),
+        "filename": file.filename or "document.pdf",
+        "total_pages": len(page_texts),
         "total_chars": len(full_text),
         "total_chunks": len(chunks),
         "language_detected": lang,
@@ -138,7 +165,7 @@ async def summary_card(req: SummaryCardRequest):
     return await handle_summary_card(req)
 
 @app.get("/risk-colour")
-async def risk_colour_endpoint(score: int = Query(...)):
+async def risk_colour_endpoint(score: int = Query(..., ge=1, le=10)):
     return await handle_risk_colour(score)
 
 @app.post("/translate")

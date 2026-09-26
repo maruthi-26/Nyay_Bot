@@ -1,5 +1,4 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import type { AnalysisResult, SummariseResponse, ChatMessage, Chunk } from "./types";
 
 interface NyayBotStore {
@@ -20,19 +19,16 @@ interface NyayBotStore {
 }
 
 export const useStore = create<NyayBotStore>()(
-  persist(
-    (set) => ({
-      doc_id: null, filename: null, full_text: null, chunks: [],
-      selected_language: "hi", analysis_result: null, summary: null,
-      conversation_history: [],
-      setDocument: (doc_id, filename, full_text, chunks) =>
-        set({ doc_id, filename, full_text, chunks, analysis_result: null, summary: null, conversation_history: [] }),
-      setLanguage: (lang) => set({ selected_language: lang }),
-      setAnalysis: (r) => set({ analysis_result: r }),
-      setSummary: (s) => set({ summary: s }),
-      addMessage: (m) => set((st) => ({ conversation_history: [...st.conversation_history, m] })),
-      reset: () => set({ doc_id: null, filename: null, full_text: null, chunks: [], analysis_result: null, summary: null, conversation_history: [] }),
-    }),
-    { name: "nyaybot-session" }
-  )
+  (set) => ({
+    doc_id: null, filename: null, full_text: null, chunks: [],
+    selected_language: "hi", analysis_result: null, summary: null,
+    conversation_history: [],
+    setDocument: (doc_id, filename, full_text, chunks) =>
+      set({ doc_id, filename, full_text, chunks, analysis_result: null, summary: null, conversation_history: [] }),
+    setLanguage: (lang) => set({ selected_language: lang }),
+    setAnalysis: (r) => set({ analysis_result: r }),
+    setSummary: (s) => set({ summary: s }),
+    addMessage: (m) => set((st) => ({ conversation_history: [...st.conversation_history, m] })),
+    reset: () => set({ doc_id: null, filename: null, full_text: null, chunks: [], analysis_result: null, summary: null, conversation_history: [] }),
+  })
 );
