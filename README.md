@@ -247,6 +247,13 @@ The repository is upgraded to patched Next.js 16 / React 19 and now validates re
 4. Add OCR only with clear retention controls; improve retrieval with tested semantic search and citations tied to source pages.
 5. Add privacy/retention disclosures and evaluate Gemini/Bhashini data processing terms for the intended deployment.
 
+### Troubleshooting: "Failed to fetch" on Render
+
+- In the frontend service settings, verify `NEXT_PUBLIC_API_URL` is the backend's public Render hostname. Rebuild/redeploy the frontend after changing it; Next.js embeds this public variable during its build.
+- In the backend service settings, verify `CORS_ORIGINS` is the frontend's exact public hostname. The app accepts either a hostname or an `https://` origin, but never use `*`.
+- With the Render Blueprint, these values are linked to each service's `RENDER_EXTERNAL_HOSTNAME`. If the services were created manually or have not synced the Blueprint, set both values in the Dashboard.
+- A sleeping free service can take time to wake. Open the backend service's root URL to confirm it responds, then retry the upload.
+
 ---
 
 ## ⚖️ 11. Legal Disclaimer
