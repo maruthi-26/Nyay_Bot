@@ -22,13 +22,26 @@ MAX_PDF_SIZE_BYTES = 10 * 1024 * 1024
 MAX_PDF_PAGES = 300
 MAX_DOCUMENT_CHARS = 100_000
 
-allowed_origins = [
-    origin.strip().rstrip("/")
-    for origin in os.getenv("CORS_ORIGINS", "http://localhost:3000").split(",")
-    if origin.strip()
-]
-if not allowed_origins or "*" in allowed_origins:
-    raise RuntimeError("CORS_ORIGINS must contain explicit origins; wildcards are not allowed.")
+def parse_allowed_origins(configured_origins: str) -> list[str]:
+    origins = []
+    for value in configured_origins.split(","):
+        origin = value.strip().rstrip("/")
+        if not origin:
+            continue
+        if "*" in origin:
+            raise ValueError("CORS_ORIGINS must contain explicit origins; wildcards are not allowed.")
+        if "://" not in origin:
+            origin = f"https://{origin}"
+        if not origin.startswith(("http://", "https://")):
+            raise ValueError("CORS_ORIGINS entries must use http or https.")
+        origins.append(origin)
+    if not origins:
+        raise ValueError("CORS_ORIGINS must contain at least one explicit origin.")
+    return origins
+
+allowed_origins = parse_allowed_origins(
+    os.getenv("CORS_ORIGINS", "http://localhost:3000")
+)
 
 app.add_middleware(
     CORSMiddleware,

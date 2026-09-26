@@ -1,9 +1,21 @@
 import type { UploadResponse, AnalysisResult, AskResponse, SummariseResponse, Language, ChatMessage, Chunk } from "./types";
 
-const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const configuredBase = process.env.NEXT_PUBLIC_API_URL?.trim();
+const BASE = configuredBase
+  ? (/^https?:\/\//i.test(configuredBase) ? configuredBase : `https://${configuredBase}`).replace(/\/+$/, "")
+  : process.env.NODE_ENV === "development"
+    ? "http://localhost:8000"
+    : null;
+
+function apiUrl(path: string): string {
+  if (!BASE) {
+    throw new Error("The API URL is not configured. Set NEXT_PUBLIC_API_URL to the deployed backend URL and rebuild the frontend.");
+  }
+  return `${BASE}${path}`;
+}
 
 async function post<T>(path: string, body: object): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(apiUrl(path), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -18,7 +30,7 @@ async function post<T>(path: string, body: object): Promise<T> {
 export async function uploadPDF(file: File): Promise<UploadResponse> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(`${BASE}/upload`, { method: "POST", body: form });
+  const res = await fetch(apiUrl("/upload"), { method: "POST", body: form });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Upload failed" }));
     throw new Error(err.detail || "Upload failed");
@@ -64,7 +76,7 @@ export async function getAudio(text: string, lang: string): Promise<{ audio_base
 }
 
 export async function getLanguages(): Promise<Language[]> {
-  const res = await fetch(`${BASE}/languages`);
+  const res = await fetch(apiUrl("/languages"));
   return res.json();
 }
 

@@ -116,7 +116,7 @@
 
 ## ☁️ 7. Deploy to Render (Step-by-Step)
 
-This repository includes a `render.yaml` Blueprint for the FastAPI backend and Next.js frontend. Configure the backend's `CORS_ORIGINS` as a comma-separated list of exact frontend origins; the Blueprint uses `https://nyaybot-frontend.onrender.com`.
+This repository includes a `render.yaml` Blueprint for the FastAPI backend and Next.js frontend. The Blueprint now wires `CORS_ORIGINS` and `NEXT_PUBLIC_API_URL` to the corresponding Render services' `RENDER_EXTERNAL_HOSTNAME` values, so generated Render subdomains are handled automatically. For non-Blueprint deployments, configure both variables manually with your exact service hostnames.
 
 ### Method A: Blueprint Deployment (Recommended)
 
@@ -128,8 +128,8 @@ This repository includes a `render.yaml` Blueprint for the FastAPI backend and N
    - `nyaybot-frontend` (Node Web Service)
 5. Under Environment Variables:
    - For `nyaybot-backend`: Enter your `GEMINI_API_KEY` (and optionally `GOOGLE_API_KEY`, `BHASHINI_API_KEY`, and `BHASHINI_USER_ID`).
-   - For `nyaybot-backend`: Set `CORS_ORIGINS` to the exact origin of your deployed frontend. Do not use `*`.
-   - For `nyaybot-frontend`: Set `NEXT_PUBLIC_API_URL` to `https://nyaybot-backend.onrender.com` (or your backend URL).
+   - For `nyaybot-backend`: Set `CORS_ORIGINS` to the exact frontend hostname (for example, `nyaybot-front-ot8e.onrender.com`). Do not use `*`.
+   - For `nyaybot-frontend`: Set `NEXT_PUBLIC_API_URL` to the backend hostname (for example, `nyaybot-backend.onrender.com`). Rebuild after changing this value.
 6. Click **Apply**. Render will automatically build and deploy both services!
 
 ---
