@@ -84,7 +84,7 @@ export default function HomePage() {
           <span className="text-xl font-bold text-amber-400" style={{ fontFamily: "'DM Serif Display', serif" }}>NyayBot</span>
           <span className="text-slate-500 text-sm hidden sm:block">न्याय for everyone</span>
         </div>
-        <span className="text-slate-500 text-xs">Built for India • Free to use</span>
+        <span className="text-slate-500 text-xs">Built for India • AI-generated information</span>
       </header>
 
       {/* Processing overlay */}
@@ -99,11 +99,11 @@ export default function HomePage() {
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs transition-all ${
                     completedSteps.includes(s.id) ? "bg-green-500 text-white" :
                     currentStep === s.id ? "bg-amber-400 text-slate-900 animate-pulse" :
-                    "bg-slate-700 text-slate-500"
+                    "bg-slate-700 text-slate-200"
                   }`}>
                     {completedSteps.includes(s.id) ? "✓" : s.id}
                   </div>
-                  <span className={`text-sm ${currentStep === s.id ? "text-amber-300" : completedSteps.includes(s.id) ? "text-green-400" : "text-slate-500"}`}>
+                  <span className={`text-sm ${                  currentStep === s.id ? "text-amber-300" : completedSteps.includes(s.id) ? "text-green-400" : "text-slate-300"}`}>
                     {s.label}
                   </span>
                 </div>
@@ -121,8 +121,8 @@ export default function HomePage() {
             <span className="text-amber-400 transition-all duration-500">{CYCLE_WORDS[wordIdx]}</span>
           </h1>
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Upload any legal document. Get a plain-language summary, risk analysis,
-            and answer to any question — in your language, in 60 seconds.
+            Upload a text-based legal PDF. Get a plain-language summary, potential risk flags,
+            and document-based answers in your language.
           </p>
           <div className="inline-flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-full px-4 py-2 text-sm text-slate-400">
             <span>🔒</span>
@@ -163,7 +163,7 @@ export default function HomePage() {
               <div className="text-5xl opacity-40">📋</div>
               <p className="text-slate-300 text-lg">Drop your legal document here</p>
               <p className="text-slate-500">or click to browse</p>
-              <span className="inline-block bg-slate-800 text-slate-400 text-xs px-3 py-1 rounded-full border border-slate-700">PDF files up to 10MB</span>
+              <span className="inline-block bg-slate-800 text-slate-200 text-xs px-3 py-1 rounded-full border border-slate-700">PDF files up to 10MB</span>
             </div>
           )}
         </div>
@@ -185,12 +185,12 @@ export default function HomePage() {
         )}
 
         {/* Stats bar */}
-        <div className="mt-16 flex flex-wrap justify-center gap-6 text-slate-500 text-sm">
-          <span>50,000+ documents analysed</span>
+        <div className="mt-16 flex flex-wrap justify-center gap-6 text-slate-300 text-sm">
+          <span>11 supported Indian languages</span>
           <span>•</span>
-          <span>10 Indian languages</span>
+          <span>PDFs up to 10 MB</span>
           <span>•</span>
-          <span>Trusted across 28 states</span>
+          <span>Scanned PDF OCR not yet supported</span>
         </div>
       </main>
     </div>
