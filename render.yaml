@@ -19,7 +19,10 @@
       - key: BHASHINI_USER_ID
         sync: false
       - key: CORS_ORIGINS
-        value: https://nyaybot-frontend.onrender.com
+        fromService:
+          type: web
+          name: nyaybot-frontend
+          envVarKey: RENDER_EXTERNAL_HOSTNAME
 
   # ── 2. NyayBot Frontend (Next.js Node.js Service) ────────────────────────
   - type: web
@@ -32,4 +35,7 @@
     startCommand: npm start
     envVars:
       - key: NEXT_PUBLIC_API_URL
-        sync: false
+        fromService:
+          type: web
+          name: nyaybot-backend
+          envVarKey: RENDER_EXTERNAL_HOSTNAME

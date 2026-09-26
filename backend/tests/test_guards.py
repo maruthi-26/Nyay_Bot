@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from main import chunk_text
+from main import chunk_text, parse_allowed_origins
 from rag_engine import (
     AskRequest,
     DocumentChunk,
@@ -28,6 +28,16 @@ class ChunkingTests(unittest.TestCase):
         self.assertEqual(starts, sorted(set(starts)))
         self.assertTrue(all(chunk["end_char"] <= len(text) for chunk in chunks))
         self.assertTrue(all(len(chunk["text"]) <= 600 for chunk in chunks))
+
+    def test_render_hostname_is_normalized_for_cors(self):
+        self.assertEqual(
+            parse_allowed_origins("nyaybot-front-ot8e.onrender.com"),
+            ["https://nyaybot-front-ot8e.onrender.com"],
+        )
+
+    def test_cors_wildcard_is_rejected(self):
+        with self.assertRaises(ValueError):
+            parse_allowed_origins("*")
 
 
 class RequestValidationTests(unittest.TestCase):
